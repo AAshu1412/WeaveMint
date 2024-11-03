@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.26;
 
 /// @custom:security-contact mujahidshaik2002@gmail.com
 contract ERC721WeaveVMStorage {
     function uploadToArweave(
         bytes memory dataInBytes
-    ) public pure returns (string memory) {
+    ) public view returns (string memory) {
         (
             string memory name,
             string memory image,
@@ -48,13 +48,15 @@ contract ERC721WeaveVMStorage {
         json = string.concat(json, "]}");
 
         // Placeholder call Upload JSON to Arweave
-        // (bool success, bytes memory result) = address(0x17).staticcall(abi.encodePacked(json));
-        // if (!success) revert();
+        (bool success, bytes memory result) = address(0x17).staticcall(
+            abi.encodePacked(json)
+        );
+        if (!success) revert();
 
-        // return result;
+        return abi.decode(result, (string));
 
         // For testing purposes, return JSON directly
-        return json;
+        // return json;
     }
 
     // Test function to create JSON with direct inputs
