@@ -1,5 +1,5 @@
 "use client";
-import Link from 'next/link';
+import Link from "next/link";
 import { useState, useEffect } from "react";
 
 export default function Home() {
@@ -41,12 +41,12 @@ export default function Home() {
                   </h1>
                 </div>
                 <Link href="/create-nft">
-                <div className="w-[80%] bg-[#252525] rounded-lg p-6 transition-transform transform hover:-translate-y-1 hover:bg-[#343434]">
-                  <div className="flex flex-col gap-3">
-                    <h1 className="text-2xl font-semibold">Create NFT</h1>
-                    <h1 className="text-lg">Yo create your nft</h1>
+                  <div className="w-[80%] bg-[#252525] rounded-lg p-6 transition-transform transform hover:-translate-y-1 hover:bg-[#343434]">
+                    <div className="flex flex-col gap-3">
+                      <h1 className="text-2xl font-semibold">Create NFT</h1>
+                      <h1 className="text-lg">Yo create your nft</h1>
+                    </div>
                   </div>
-                </div>
                 </Link>
               </div>
             </div>
