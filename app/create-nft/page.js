@@ -62,19 +62,22 @@ export default function CreateNFT() {
           const buffer = new Uint8Array(await file.arrayBuffer());
           const txn = await ar.createTransaction(
             { data: buffer },
-            "use_wallet"
+            JSON.parse(process.env.NEXT_PUBLIC_WALLET)
           );
           txn.addTag("App-Name", "WeaveMint");
           // txn.addTag("App-Version", AppVersion)
           txn.addTag("Content-Type", file.type || "application/octet-stream");
           txn.addTag("WeaveMint-Function", "Create-Profile");
           txn.addTag("File-Name", file.name || "unknown");
-          await ar.transactions.sign(txn, "use_wallet");
+          await ar.transactions.sign(
+            txn,
+            JSON.parse(process.env.NEXT_PUBLIC_WALLET)
+          );
           try {
             await ar.transactions.post(txn);
             resolve(txn.id);
             console.log("txn.id = " + txn.id);
-            console.log("txn = " + JSON.stringify(txn));
+            // console.log("txn = " + JSON.stringify(txn));
           } catch (e) {
             console.log("Error: " + e);
           }
@@ -84,6 +87,32 @@ export default function CreateNFT() {
       });
     } else {
       toast("Error: Upload the image first");
+    }
+  }
+
+  async function generateImage(prompt) {
+    const res = await generateTextToImage(livepeer, {
+      modelId: "SG161222/RealVisXL_V4.0_Lightning",
+      prompt,
+    });
+
+    console.log(res);
+
+    if (!res.ok) {
+      console.error("Unable to generate image");
+      return;
+    }
+
+    // Cast the response value to the expected type
+    const responseValue = res.value?.imageResponse;
+
+    const images = responseValue?.images;
+
+    if (images && images.length > 0) {
+      const imageUrl = images[0].url;
+      return imageUrl;
+    } else {
+      throw new Error("No images returned from the API.");
     }
   }
 
