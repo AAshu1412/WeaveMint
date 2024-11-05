@@ -1,6 +1,10 @@
 "use client";
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import Footer from "@/components/Footer";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import ArrowCircleRightIcon from "@mui/icons-material/ArrowCircleRight";
 
 export default function Home() {
   const images = [
@@ -23,10 +27,11 @@ export default function Home() {
 
   return (
     <div className="w-full h-screen flex  bg-[#121212]">
-      <div className="w-1/2 relative">
+      <ScrollArea className="w-1/2 relative h-full">
         {/* Content with dynamic scrollbar */}
-        <div className="h-full overflow-y-hidden scrollbar-hover text-[#FFFFFF]">
-          <div className="p-8 h-full overflow-y-auto">
+        {/* scrollbar-hover */}
+        <div className="h-full overflow-y-hidden text-[#FFFFFF]">
+          <div className=" p-8 h-full overflow-y-auto">
             <div className="absolute top-[30%]">
               <div className="flex flex-col gap-10">
                 <div className="flex flex-col gap-5">
@@ -42,17 +47,21 @@ export default function Home() {
                 </div>
                 <Link href="/create-nft">
                   <div className="w-[80%] bg-[#252525] rounded-lg p-6 transition-transform transform hover:-translate-y-1 hover:bg-[#343434]">
-                    <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-3 relative">
                       <h1 className="text-2xl font-semibold">Create NFT</h1>
-                      <h1 className="text-lg">Yo create your nft</h1>
+                      <h1 className="text-lg">
+                        Ready To Mint Your NFT Lessgooooo!
+                      </h1>
+                      <ArrowForwardIcon className="absolute right-10 top-[40%]" />
                     </div>
                   </div>
                 </Link>
               </div>
+              <Footer />
             </div>
           </div>
         </div>
-      </div>
+      </ScrollArea>
 
       <div className="relative w-1/2 h-screen overflow-hidden">
         {images.map((url, index) => (
