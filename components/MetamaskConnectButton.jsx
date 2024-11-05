@@ -118,17 +118,17 @@ export default function MetamaskConnectButton() {
           setIsCorrectNetwork(true);
         } catch (addError) {
           console.log(
-            "Failed to add the Zora Sepolia Testnet network:",
+            "Failed to add the WeaveVM Testnet network:",
             addError
           );
-          alert("Failed to add the Zora Sepolia Testnet network.");
+          alert("Failed to add the WeaveVM Testnet network.");
         }
       } else {
         console.log(
-          "Failed to switch to the Zora Sepolia Testnet network:",
+          "Failed to switch to the WeaveVM Testnet network:",
           switchError
         );
-        alert("Failed to switch to the Zora Sepolia Testnet network.");
+        alert("Failed to switch to the WeaveVM Testnet network.");
       }
     }
   };
@@ -216,7 +216,7 @@ export default function MetamaskConnectButton() {
           </MenubarMenu>
         ) : (
           <button onClick={switchToZoraSepoliaTestnet} className="">
-            Switch to Zora Sepolia Testnet
+            Switch to WeaveVM Testnet
           </button>
         )
       ) : (

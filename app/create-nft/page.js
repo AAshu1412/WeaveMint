@@ -10,6 +10,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import Footer from "@/components/Footer";
 import MetamaskConnectButton from "@/components/MetamaskConnectButton";
 import TraitsTable from "@/components/Traitstable";
+import { LivepeerCore } from "@livepeer/ai/core";
+import { generateTextToImage } from "@livepeer/ai/funcs/generateTextToImage";
 
 export default function CreateNFT() {
   const [file, setFile] = useState(null);
