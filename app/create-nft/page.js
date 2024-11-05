@@ -105,7 +105,7 @@ export default function CreateNFT() {
         <div className="flex flex-col gap-10 w-[30%] ">
           <h1 className="text-5xl font-semibold">Create New NFT</h1>
           {/* <ConnectKitButton showBalance={true} /> */}
-          {status == "connected" ? (
+          {/* {status == "connected" ? (
             <div className="border-[1px] border-solid border-[#FFFFFF] rounded-lg p-5 flex gap-5 items-center">
               <div>
                 <Image
@@ -125,7 +125,7 @@ export default function CreateNFT() {
             </div>
           ) : (
             <></>
-          )}
+          )} */}
 
           <div className="space-y-4">
             <h2 className="text-2xl font-bold text-[#FFFFFF]">Upload file</h2>
