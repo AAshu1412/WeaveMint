@@ -35,7 +35,11 @@ export default function Home() {
             <div className="absolute top-[30%]">
               <div className="flex flex-col gap-10">
                 <div className="flex flex-col gap-5">
-                  <h1 className="text-5xl font-semibold">WeaveMint</h1>
+                  <div className="flex items-center">
+                    <img src="/weavemint.svg" className="w-[18%]" />
+                    <h1 className="text-5xl font-semibold"> WeaveMint</h1>
+                  </div>
+
                   <h1 className="text-lg w-[70%]">
                     At Weavemint, we're revolutionizing NFT minting by
                     integrating Arweave's WeaveVM precompiles directly into the
@@ -50,7 +54,7 @@ export default function Home() {
                     <div className="flex flex-col gap-3 relative">
                       <h1 className="text-2xl font-semibold">Create NFT</h1>
                       <h1 className="text-lg">
-                        Ready To Mint Your NFT Lessgooooo!
+                        Ready To Mint Your NFT, Lessgooooo!
                       </h1>
                       <ArrowForwardIcon className="absolute right-10 top-[40%]" />
                     </div>

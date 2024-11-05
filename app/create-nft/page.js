@@ -79,9 +79,13 @@ export default function CreateNFT() {
 
   return (
     <ScrollArea className="w-full h-screen bg-[#121212] mx-auto px-6 pt-6 pb-2 text-[#FFFFFF]">
-      <div className="flex gap-8 justify-center">
+      <div className="flex items-center border-b border-gray-600/50">
+        <img src="/weavemint.svg" className="w-[7%]" />
+        <h1 className="text-5xl font-semibold"> WeaveMint</h1>
+      </div>
+      <div className="flex gap-8 justify-center mt-[3%]">
         {/* Upload Section */}
-        <div className="flex flex-col gap-10 w-[30%] mt-[5%] ">
+        <div className="flex flex-col gap-10 w-[30%] ">
           <h1 className="text-5xl font-semibold">Create New NFT</h1>
           <ConnectKitButton showBalance={true} />
           {status == "connected" ? (

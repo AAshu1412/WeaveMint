@@ -1,0 +1,10 @@
+<svg version="1.2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 166 100" width="166" height="100">
+	<title>weavemint-logo-svg</title>
+	<style>
+		tspan { white-space:pre } 
+		.s0 { fill: none;stroke: #ffffff;stroke-width: 3 } 
+	</style>
+	<path fill-rule="evenodd" class="s0" d="m60 30c20 0 30 20 10 40-20 20-40 0-20-20 20-20 40 0 20 20"/>
+	<path fill-rule="evenodd" class="s0" d="m85 45q10-10 20 0 10 10 20 0"/>
+	<path fill-rule="evenodd" class="s0" d="m85 55q10-10 20 0 10 10 20 0"/>
+</svg>
