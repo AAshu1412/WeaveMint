@@ -12,8 +12,8 @@ export default function CreateNFT() {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const fileInputRef = useRef(null); // Create a ref for the file input
-  const [traits, setTraits] = useState(["name", "age"]);
-  const [values, setValues] = useState(["Tom", 2]);
+  const [traits, setTraits] = useState([]);
+  const [values, setValues] = useState([]);
   const [editingIndex, setEditingIndex] = useState({ row: -1, col: -1 });
   console.log("Trait: ", traits);
   console.log("Values: ", values);
@@ -208,7 +208,7 @@ export default function CreateNFT() {
               onClick={addRow}
               className="mt-2 px-4 py-2 bg-[#252525] text-[#FFFFFF] rounded-lg hover:bg-[#343434] transition-colors"
             >
-              Add New Trait
+             + Add New Trait
             </button>
           </div>
         </div>
