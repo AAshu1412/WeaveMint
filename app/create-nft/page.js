@@ -1,22 +1,20 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
 import { Upload } from "lucide-react";
-import { ConnectKitButton, ChainIcon } from "connectkit";
+import Arweave from "arweave";
 import Image from "next/image";
+import Link from "next/link";
 import { useAccount } from "wagmi";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Footer from "@/components/Footer";
+import MetamaskConnectButton from "@/components/MetamaskConnectButton";
+import TraitsTable from "@/components/Traitstable";
 
 export default function CreateNFT() {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const fileInputRef = useRef(null); // Create a ref for the file input
-  const [traits, setTraits] = useState([]);
-  const [values, setValues] = useState([]);
-  const [editingIndex, setEditingIndex] = useState({ row: -1, col: -1 });
-  console.log("Trait: ", traits);
-  console.log("Values: ", values);
 
   const { address, chainId, chain, status } = useAccount();
 
@@ -46,48 +44,65 @@ export default function CreateNFT() {
     fileInputRef.current.click();
   };
 
-  const addRow = () => {
-    setTraits([...traits, ""]);
-    setValues([...values, ""]);
-  };
+  function uploadToArweave() {
+    if (preview) {
+      const ar = Arweave.init({
+        host: "arweave.net",
+        port: 443,
+        protocol: "https",
+      });
 
-  const startEditing = (row, col) => {
-    setEditingIndex({ row, col });
-  };
+      const reader = new FileReader();
+      reader.readAsArrayBuffer(file);
 
-  const updateValue = (event, row, col) => {
-    const newValue = event.target.value;
-    if (col === 0) {
-      const newTraits = [...traits];
-      newTraits[row] = newValue;
-      setTraits(newTraits);
+      return new Promise((resolve, reject) => {
+        reader.onload = async () => {
+          const buffer = new Uint8Array(await file.arrayBuffer());
+          const txn = await ar.createTransaction(
+            { data: buffer },
+            "use_wallet"
+          );
+          txn.addTag("App-Name", "WeaveMint");
+          // txn.addTag("App-Version", AppVersion)
+          txn.addTag("Content-Type", file.type || "application/octet-stream");
+          txn.addTag("WeaveMint-Function", "Create-Profile");
+          txn.addTag("File-Name", file.name || "unknown");
+          await ar.transactions.sign(txn, "use_wallet");
+          try {
+            await ar.transactions.post(txn);
+            resolve(txn.id);
+            console.log("txn.id = " + txn.id);
+            console.log("txn = " + JSON.stringify(txn));
+          } catch (e) {
+            console.log("Error: " + e);
+          }
+        };
+
+        reader.onerror = (err) => reject(err);
+      });
     } else {
-      const newValues = [...values];
-      newValues[row] = newValue;
-      setValues(newValues);
+      toast("Error: Upload the image first");
     }
-  };
-
-  const deleteRow = (index) => {
-    const updatedTraits = [...traits];
-    const updatedValues = [...values];
-    updatedTraits.splice(index, 1);
-    updatedValues.splice(index, 1);
-    setTraits(updatedTraits);
-    setValues(updatedValues);
-  };
+  }
 
   return (
     <ScrollArea className="w-full h-screen bg-[#121212] mx-auto px-6 pt-6 pb-2 text-[#FFFFFF]">
-      <div className="flex items-center border-b border-gray-600/50">
-        <img src="/weavemint.svg" className="w-[7%]" />
-        <h1 className="text-5xl font-semibold"> WeaveMint</h1>
+      <div className="flex items-center justify-between border-b border-gray-600/50">
+        <Link href="/">
+          <div className="flex items-center ">
+            <img src="/weavemint.svg" className="w-[70%]" />
+            <h1 className="text-5xl font-semibold"> WeaveMint</h1>
+          </div>
+        </Link>
+
+        <MetamaskConnectButton />
       </div>
+
       <div className="flex gap-8 justify-center mt-[3%]">
         {/* Upload Section */}
         <div className="flex flex-col gap-10 w-[30%] ">
           <h1 className="text-5xl font-semibold">Create New NFT</h1>
-          <ConnectKitButton showBalance={true} />
+          {/* <ConnectKitButton showBalance={true} /> */}
           {status == "connected" ? (
             <div className="border-[1px] border-solid border-[#FFFFFF] rounded-lg p-5 flex gap-5 items-center">
               <div>
@@ -100,7 +115,7 @@ export default function CreateNFT() {
               </div>
               <div className="flex flex-col relative w-full">
                 <h1>{address.slice(0, 6) + "....." + address.slice(-6)}</h1>
-                <h1>{chain.name}</h1>
+                <h1>WeaveVM Testnet</h1>
                 <h1 className="absolute right-0 text-[#28b833] bg-[#1a2c21] rounded p-1">
                   {status}
                 </h1>
@@ -141,74 +156,15 @@ export default function CreateNFT() {
 
           <div className="space-y-4">
             <h1 className="text-2xl font-bold text-[#FFFFFF]">Traits</h1>
-            <table className="w-full border border-gray-300 rounded-lg overflow-hidden">
-              <thead className="bg-[#252525]">
-                <tr>
-                  <th className="w-[5%]"></th>
-                  <th className="w-[47.5%] px-4 py-2 text-lg">Traits</th>
-                  <th className="w-[47.5%] px-4 py-2 text-lg">Value</th>
-                </tr>
-              </thead>
-              <tbody>
-                {traits.map((trait, index) => (
-                  <tr key={index} className="hover:bg-[#343434] group">
-                    {/* <td
-                      className="px-2 py-1 cursor-pointer text-red-600"
-                      onClick={addRow}
-                    >
-                      +
-                    </td> */}
+            <TraitsTable />
+          </div>
 
-                    <td className="px-2 py-1 border-r border-gray-600/50">
-                      <button
-                        onClick={() => deleteRow(index)}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        X
-                      </button>
-                    </td>
-
-                    <td
-                      className="px-2 py-1 cursor-pointer border-r border-gray-600/50"
-                      onClick={() => startEditing(index, 0)}
-                    >
-                      {editingIndex.row === index && editingIndex.col === 0 ? (
-                        <input
-                          value={trait}
-                          onChange={(e) => updateValue(e, index, 0)}
-                          onBlur={() => setEditingIndex({ row: -1, col: -1 })}
-                          autoFocus
-                          className="bg-transparent border-b border-gray-500"
-                        />
-                      ) : (
-                        trait
-                      )}
-                    </td>
-                    <td
-                      className="px-2 py-1 cursor-pointer"
-                      onClick={() => startEditing(index, 1)}
-                    >
-                      {editingIndex.row === index && editingIndex.col === 1 ? (
-                        <input
-                          value={values[index]}
-                          onChange={(e) => updateValue(e, index, 1)}
-                          onBlur={() => setEditingIndex({ row: -1, col: -1 })}
-                          autoFocus
-                          className="bg-transparent border-b border-gray-500"
-                        />
-                      ) : (
-                        values[index]
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div>
             <button
-              onClick={addRow}
               className="mt-2 px-4 py-2 bg-[#252525] text-[#FFFFFF] rounded-lg hover:bg-[#343434] transition-colors"
+              onClick={uploadToArweave}
             >
-             + Add New Trait
+              Upload To Arweave
             </button>
           </div>
         </div>
@@ -230,6 +186,7 @@ export default function CreateNFT() {
           </div>
         </div>
       </div>
+
       <Footer />
     </ScrollArea>
   );
