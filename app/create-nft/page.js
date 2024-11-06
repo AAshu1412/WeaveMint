@@ -17,6 +17,7 @@ import { SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
 import { ethers } from "ethers";
 import weavemintABI from "@/utils/abi.json";
 import { contractCall } from "@/utils/constant.js";
+import { FiLoader } from "react-icons/fi";
 
 const WEAVEMINT_ADDRESS = "0x61a5d7B751C0e249ED4c418789Bd230c00Be2e5a";
 
@@ -32,6 +33,9 @@ export default function CreateNFT() {
   const [livepeerPrompt, setLivepeerPrompt] = useState(null);
   const [imageName, setImageName] = useState(null);
   const [livepeer, setLivepeer] = useState(null);
+
+  const [loading1, setLoading1] = useState(false);
+  const [loading2, setLoading2] = useState(false);
 
   const { address, chainId, chain, status } = useAccount();
   const { writeContract } = useWriteContract();
@@ -65,6 +69,7 @@ export default function CreateNFT() {
       }
 
       setFile(selectedFile);
+      toast("Image Uploaded");
     }
   };
 
@@ -265,6 +270,7 @@ export default function CreateNFT() {
 
   async function minting() {
     try {
+      setLoading2(true);
       const imageUploadArDriveTxID = await uploadToArweave(preview);
       const jsonVariable = {
         name: imageName,
@@ -287,13 +293,16 @@ export default function CreateNFT() {
       // console.log("mintNft: "+JSON.stringify(transaction));
 
       //  await     contractCall (address,encodeJsonVariable);
-      const dat = await writeContract({
+      const data = await writeContract({
         abi: weavemintABI,
         address: WEAVEMINT_ADDRESS,
         functionName: "mintNft",
         args: [address, encodeJsonVariable],
+        gas: 700000n,
       });
-      console.log("dawawdawd: " + dat);
+      console.log("Dat: " + data);
+      setLoading2(false);
+      toast("Your NFT is minting!!!");
     } catch (error) {
       console.log(error);
     }
@@ -408,6 +417,7 @@ export default function CreateNFT() {
   ///////////////////////////////////////////////////////////////
 
   async function generateImage(prompt) {
+    setLoading1(true);
     const res = await generateTextToImage(livepeer, {
       modelId: "SG161222/RealVisXL_V4.0_Lightning",
       prompt,
@@ -437,6 +447,7 @@ export default function CreateNFT() {
         const data2 = await compressImage(sizeimage);
         sizeimage = data2; // Update to the new compressed image URL
         const data3 = await getImageInfo(sizeimage);
+        setLoading1(true);
 
         console.log("Data3: " + JSON.stringify(data3));
 
@@ -453,9 +464,11 @@ export default function CreateNFT() {
       setPreview(sizeimage);
       console.log("Imageurl: " + imageUrl);
       //  await handleUrlSubmit(sizeimage);
+      setLoading1(false);
+      toast("Image Generated");
       return imageUrl;
     } else {
-      throw new Error("No images returned from the API.");
+      toast("Problem in image generation");
     }
   }
 
@@ -555,7 +568,11 @@ export default function CreateNFT() {
                     onClick={async () => await generateImage(livepeerPrompt)}
                     className="mt-2 px-4 w-[20%] py-2 bg-[#252525] text-[#FFFFFF] rounded-lg hover:bg-[#343434] transition-colors"
                   >
-                    Generate
+                    {loading1 ? (
+                      <FiLoader size={26} className="animate-spin" />
+                    ) : (
+                      "Generate"
+                    )}
                   </button>
                 </div>
               </div>
@@ -657,7 +674,11 @@ export default function CreateNFT() {
               className="mt-2 px-4 py-2 bg-[#252525] text-[#FFFFFF] rounded-lg hover:bg-[#343434] transition-colors"
               onClick={minting}
             >
-              Mint
+              {loading2 ? (
+                <FiLoader size={26} className="animate-spin" />
+              ) : (
+                "Mint"
+              )}
             </button>
           </div>
         </div>
