@@ -4,7 +4,7 @@ import { Upload } from "lucide-react";
 import Arweave from "arweave";
 // import Image from "next/image";
 import Link from "next/link";
-import { useAccount } from "wagmi";
+import { useAccount, useWriteContract } from "wagmi";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Footer from "@/components/Footer";
@@ -15,6 +15,10 @@ import { generateTextToImage } from "@livepeer/ai/funcs/generateTextToImage";
 import imageCompression from "browser-image-compression";
 import { SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
 import { ethers } from "ethers";
+import weavemintABI from "@/utils/abi.json";
+import { contractCall } from "@/utils/constant.js";
+
+const WEAVEMINT_ADDRESS = "0x61a5d7B751C0e249ED4c418789Bd230c00Be2e5a";
 
 export default function CreateNFT() {
   const [file, setFile] = useState(null);
@@ -30,6 +34,7 @@ export default function CreateNFT() {
   const [livepeer, setLivepeer] = useState(null);
 
   const { address, chainId, chain, status } = useAccount();
+  const { writeContract } = useWriteContract();
 
   useEffect(() => {
     const _livepeer = new LivepeerCore({
@@ -263,7 +268,7 @@ export default function CreateNFT() {
       const imageUploadArDriveTxID = await uploadToArweave(preview);
       const jsonVariable = {
         name: imageName,
-        image: imageUploadArDriveTxID,
+        image: `https://arweave.net/${imageUploadArDriveTxID}`,
         traits: traits,
         values: values,
       };
@@ -271,8 +276,26 @@ export default function CreateNFT() {
 
       const encodeJsonVariable = await encodeData(jsonVariable);
       console.log("encodeJsonVariable: " + encodeJsonVariable);
+
+      // const provider = new ethers.BrowserProvider(window.ethereum);
+      // await window.ethereum.request({ method: "eth_requestAccounts" });
+      // const signer = await provider.getSigner();
+      // const contract = new ethers.Contract(WEAVEMINT_ADDRESS, weavemintABI, signer);
+      // const transaction = await contract.mintNft(address, encodeJsonVariable);
+      // transaction.wait();
+
+      // console.log("mintNft: "+JSON.stringify(transaction));
+
+      //  await     contractCall (address,encodeJsonVariable);
+      const dat = await writeContract({
+        abi: weavemintABI,
+        address: WEAVEMINT_ADDRESS,
+        functionName: "mintNft",
+        args: [address, encodeJsonVariable],
+      });
+      console.log("dawawdawd: " + dat);
     } catch (error) {
-      toast(error);
+      console.log(error);
     }
   }
 
@@ -424,8 +447,8 @@ export default function CreateNFT() {
 
         currentIteration++; // Increment the iteration count
       }
-      await uploadToArweave(sizeimage);
-      console.log("sizeimage type : " + typeof sizeimage);
+      // await uploadToArweave(sizeimage);
+      // console.log("sizeimage type : " + typeof sizeimage);
       console.log("sizeimage: " + sizeimage);
       setPreview(sizeimage);
       console.log("Imageurl: " + imageUrl);
@@ -439,7 +462,7 @@ export default function CreateNFT() {
   const handleInput = (event) => {
     const name = event.target.name;
     const value = event.target.value;
-    console.log(name, value);
+    // console.log(name, value);
     if (name == "LivepeerPrompt") setLivepeerPrompt(value);
     if (name == "ImageName") setImageName(value);
   };
