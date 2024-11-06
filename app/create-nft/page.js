@@ -260,7 +260,7 @@ export default function CreateNFT() {
 
   async function minting() {
     try {
-      const imageUploadArDriveTxID = await uploadToArweave();
+      const imageUploadArDriveTxID = await uploadToArweave(preview);
       const jsonVariable = {
         name: imageName,
         image: imageUploadArDriveTxID,
