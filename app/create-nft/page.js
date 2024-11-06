@@ -1,8 +1,8 @@
 "use client";
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, use } from "react";
 import { Upload } from "lucide-react";
 import Arweave from "arweave";
-import Image from "next/image";
+// import Image from "next/image";
 import Link from "next/link";
 import { useAccount } from "wagmi";
 import { toast } from "sonner";
@@ -12,14 +12,35 @@ import MetamaskConnectButton from "@/components/MetamaskConnectButton";
 import TraitsTable from "@/components/Traitstable";
 import { LivepeerCore } from "@livepeer/ai/core";
 import { generateTextToImage } from "@livepeer/ai/funcs/generateTextToImage";
+import imageCompression from "browser-image-compression";
+import { SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
+import { ethers } from "ethers";
 
 export default function CreateNFT() {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const fileInputRef = useRef(null); // Create a ref for the file input
 
+  const [traits, setTraits] = useState([]);
+  const [values, setValues] = useState([]);
+  const [editingIndex, setEditingIndex] = useState({ row: -1, col: -1 });
+
+  const [livepeerPrompt, setLivepeerPrompt] = useState(null);
+  const [imageName, setImageName] = useState(null);
+  const [livepeer, setLivepeer] = useState(null);
+
   const { address, chainId, chain, status } = useAccount();
 
+  useEffect(() => {
+    const _livepeer = new LivepeerCore({
+      httpBearer: process.env.NEXT_PUBLIC_LIVEPEER_API_TOKEN,
+    });
+    setLivepeer(_livepeer);
+    console.log(_livepeer);
+    console.log(process.env.NEXT_PUBLIC_LIVEPEER_API_TOKEN);
+  }, []);
+
+  //////////////////////////////////////////////////////////////////////////////////////
   useEffect(() => {
     if (file && file.type.startsWith("image/")) {
       const reader = new FileReader();
@@ -45,6 +66,70 @@ export default function CreateNFT() {
   const handleButtonClick = () => {
     fileInputRef.current.click();
   };
+
+  /////////////////////////////////////////////////////////////////////////////////////////////////
+
+  const addRow = () => {
+    setTraits([...traits, ""]);
+    setValues([...values, ""]);
+  };
+
+  const startEditing = (row, col) => {
+    setEditingIndex({ row, col });
+  };
+
+  const updateValue = (event, row, col) => {
+    const newValue = event.target.value;
+    if (col === 0) {
+      const newTraits = [...traits];
+      newTraits[row] = newValue;
+      setTraits(newTraits);
+    } else {
+      const newValues = [...values];
+      newValues[row] = newValue;
+      setValues(newValues);
+    }
+  };
+
+  const deleteRow = (index) => {
+    const updatedTraits = [...traits];
+    const updatedValues = [...values];
+    updatedTraits.splice(index, 1);
+    updatedValues.splice(index, 1);
+    setTraits(updatedTraits);
+    setValues(updatedValues);
+  };
+
+  ///////////////////////////////////////////////////////////////////////////////
+
+  const encodeData = async (data) => {
+    const abiCoder = new ethers.AbiCoder();
+    const encodedData = abiCoder.encode(
+      ["string", "string", "string[]", "string[]"],
+      [data.name, data.image, data.traits, data.values]
+    );
+
+    console.log("Encoded Data:", encodedData); // Encoded data is a single hex string
+    return encodedData;
+  };
+
+  const decodeData = (encodedData) => {
+    const abiCoder = new ethers.AbiCoder();
+    const decodedData = abiCoder.decode(
+      ["string", "string", "string[]", "string[]"],
+      encodedData
+    );
+
+    console.log("Decoded Data:", {
+      name: decodedData[0],
+      image: decodedData[1],
+      traits: decodedData[2],
+      values: decodedData[3],
+    });
+    return decodedData;
+  };
+
+  //////////////////////////////////////////////////////////////////////////////
 
   function uploadToArweave() {
     if (preview) {
@@ -77,6 +162,7 @@ export default function CreateNFT() {
             await ar.transactions.post(txn);
             resolve(txn.id);
             console.log("txn.id = " + txn.id);
+            return txn.id;
             // console.log("txn = " + JSON.stringify(txn));
           } catch (e) {
             console.log("Error: " + e);
@@ -90,6 +176,119 @@ export default function CreateNFT() {
     }
   }
 
+  async function minting() {
+    try {
+      const imageUploadArDriveTxID = await uploadToArweave();
+      const jsonVariable = {
+        name: imageName,
+        image: imageUploadArDriveTxID,
+        traits: traits,
+        values: values,
+      };
+      console.log("JsonVariable: " + JSON.stringify(jsonVariable));
+
+      const encodeJsonVariable = await encodeData(jsonVariable);
+      console.log("encodeJsonVariable: " + encodeJsonVariable);
+    } catch (error) {
+      toast(error);
+    }
+  }
+
+  //////////////////////////////////////////////////////////////
+
+  // Get image dimensions
+  const getImageInfo = async (imageUrl) => {
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        const objectUrl = URL.createObjectURL(blob); // Create URL synchronously
+
+        img.onload = () => {
+          // Clean up the object URL after we're done
+          URL.revokeObjectURL(objectUrl);
+
+          resolve({
+            width: img.width,
+            height: img.height,
+            size: (blob.size / 1024).toFixed(2) + " KB", // Convert to KB
+          });
+        };
+
+        img.onerror = () => {
+          URL.revokeObjectURL(objectUrl);
+          reject(new Error("Failed to load image"));
+        };
+
+        img.src = objectUrl;
+      });
+    } catch (error) {
+      console.error("Error processing image:", error);
+      throw error;
+    }
+  };
+
+  // Compress image
+  const compressImage = async (imageUrl) => {
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+
+      // First attempt with initial options
+      let options = {
+        maxSizeMB: 0.1, // 100KB
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+        initialQuality: 0.7, // Start with 70% quality
+      };
+
+      let compressedBlob = await imageCompression(blob, options);
+      let currentSize = compressedBlob.size / 1024; // Convert to KB
+
+      // If still over 100KB, try more aggressive compression
+      if (currentSize > 100) {
+        // Second attempt with more aggressive options
+        options = {
+          maxSizeMB: 0.095, // Slightly under 100KB
+          maxWidthOrHeight: 1600, // Reduce max dimensions
+          useWebWorker: true,
+          initialQuality: 0.5, // Reduce initial quality
+          maxIteration: 10, // Allow more compression iterations
+        };
+
+        compressedBlob = await imageCompression(blob, options);
+        currentSize = compressedBlob.size / 1024;
+
+        // If still over 100KB, try final aggressive compression
+        if (currentSize > 100) {
+          options = {
+            maxSizeMB: 0.095,
+            maxWidthOrHeight: 1200,
+            useWebWorker: true,
+            initialQuality: 0.3,
+            maxIteration: 15,
+            fileType: "image/jpeg", // Force JPEG format for better compression
+          };
+
+          compressedBlob = await imageCompression(blob, options);
+        }
+      }
+
+      // Return both URL and size for verification
+      return {
+        url: URL.createObjectURL(compressedBlob),
+        size: (compressedBlob.size / 1024).toFixed(2), // Size in KB
+      };
+    } catch (error) {
+      console.error("Error in compression:", error);
+      throw error;
+    }
+  };
+
+  ///////////////////////////////////////////////////////////////
+
   async function generateImage(prompt) {
     const res = await generateTextToImage(livepeer, {
       modelId: "SG161222/RealVisXL_V4.0_Lightning",
@@ -102,19 +301,35 @@ export default function CreateNFT() {
       console.error("Unable to generate image");
       return;
     }
-
     // Cast the response value to the expected type
     const responseValue = res.value?.imageResponse;
 
     const images = responseValue?.images;
-
     if (images && images.length > 0) {
       const imageUrl = images[0].url;
+      setPreview(imageUrl);
+
+      const data1 = await getImageSize(imageUrl);
+      console.log("Data1: " + JSON.stringify(data1));
+      const data2 = await compressImage(imageUrl);
+
+      const data3 = await getImageSize(data2);
+      console.log("Data3: " + JSON.stringify(data3));
+
+      console.log(imageUrl);
       return imageUrl;
     } else {
       throw new Error("No images returned from the API.");
     }
   }
+
+  const handleInput = (event) => {
+    const name = event.target.name;
+    const value = event.target.value;
+    console.log(name, value);
+    if (name == "LivepeerPrompt") setLivepeerPrompt(value);
+    if (name == "ImageName") setImageName(value);
+  };
 
   return (
     <ScrollArea className="w-full h-screen bg-[#121212] mx-auto px-6 pt-6 pb-2 text-[#FFFFFF]">
@@ -155,47 +370,158 @@ export default function CreateNFT() {
           ) : (
             <></>
           )} */}
-
-          <div className="space-y-4">
-            <h2 className="text-2xl font-bold text-[#FFFFFF]">Upload file</h2>
-            <div className="border-2 border-dashed border-[#FFFFFF] rounded-lg p-8">
-              <div className="text-center space-y-4">
-                <input
-                  type="file"
-                  onChange={handleFileChange}
-                  accept="image/*"
-                  ref={fileInputRef} // Assign ref to the input
-                  className="hidden"
-                  id="file-upload"
-                />
-                <label htmlFor="file-upload" className="cursor-pointer">
-                  <div className="flex flex-col items-center space-y-4">
-                    <Upload className="w-12 h-12 " />
-                    <span className="text-sm ">PNG, JPEG, JPG Max 99KB.</span>
-                    <button
-                      onClick={handleButtonClick} // Trigger input on button click
-                      className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
-                    >
-                      Choose File
-                    </button>
-                  </div>
-                </label>
-                {file && <p className="text-sm mt-2">Selected: {file.name}</p>}
+          <div>
+            <div className="space-y-4 border-b border-gray-600/50 pb-5">
+              <h2 className="text-2xl font-bold text-[#FFFFFF]">Upload file</h2>
+              <div className="border-2 border-dashed border-[#FFFFFF] rounded-lg p-8">
+                <div className="text-center space-y-4">
+                  <input
+                    type="file"
+                    onChange={handleFileChange}
+                    accept="image/*"
+                    ref={fileInputRef} // Assign ref to the input
+                    className="hidden"
+                    id="file-upload"
+                  />
+                  <label htmlFor="file-upload" className="cursor-pointer">
+                    <div className="flex flex-col items-center space-y-4">
+                      <Upload className="w-12 h-12 " />
+                      <span className="text-sm ">PNG, JPEG, JPG Max 99KB.</span>
+                      <button
+                        onClick={handleButtonClick} // Trigger input on button click
+                        className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                      >
+                        Choose File
+                      </button>
+                    </div>
+                  </label>
+                  {file && (
+                    <p className="text-sm mt-2">Selected: {file.name}</p>
+                  )}
+                </div>
               </div>
+            </div>
+            <div className="mt-3 flex flex-col gap-4">
+              <div className="flex flex-col gap-2">
+                <h1 className="text-lg font-semibold">Text to Image</h1>
+                <div className="flex flex-col gap-1">
+                  <textarea
+                    className="w-full bg-[#343434] text-[#FFFFFF] rounded-sm h-[5%] p-3"
+                    type="text"
+                    autoComplete="off"
+                    value={livepeerPrompt}
+                    onChange={handleInput}
+                    name="LivepeerPrompt"
+                    id="LivepeerPrompt"
+                    placeholder="Write the prompt"
+                  />
+                  <button
+                    onClick={async () => await generateImage(livepeerPrompt)}
+                    className="mt-2 px-4 w-[20%] py-2 bg-[#252525] text-[#FFFFFF] rounded-lg hover:bg-[#343434] transition-colors"
+                  >
+                    Generate
+                  </button>
+                </div>
+              </div>
+              {preview ? (
+                <div className="flex flex-col gap-2">
+                  <h1 className="text-lg font-semibold">Name</h1>
+                  <input
+                    className="w-full bg-[#343434] text-[#FFFFFF] rounded-sm h-[5%] p-3"
+                    type="text"
+                    autoComplete="off"
+                    value={imageName}
+                    onChange={handleInput}
+                    name="ImageName"
+                    id="ImageName"
+                    placeholder="Write the prompt"
+                  />
+                </div>
+              ) : (
+                <></>
+              )}
             </div>
           </div>
 
           <div className="space-y-4">
             <h1 className="text-2xl font-bold text-[#FFFFFF]">Traits</h1>
-            <TraitsTable />
+            <table className="w-full border border-gray-300 rounded-lg overflow-hidden">
+              <thead className="bg-[#252525]">
+                <tr>
+                  <th className="w-[5%]"></th>
+                  <th className="w-[47.5%] px-4 py-2 text-lg">Traits</th>
+                  <th className="w-[47.5%] px-4 py-2 text-lg">Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                {traits.map((trait, index) => (
+                  <tr key={index} className="hover:bg-[#343434] group">
+                    {/* <td
+                className="px-2 py-1 cursor-pointer text-red-600"
+                onClick={addRow}
+              >
+                +
+              </td> */}
+
+                    <td className="px-2 py-1 border-r border-gray-600/50">
+                      <button
+                        onClick={() => deleteRow(index)}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        X
+                      </button>
+                    </td>
+
+                    <td
+                      className="px-2 py-1 cursor-pointer border-r border-gray-600/50"
+                      onClick={() => startEditing(index, 0)}
+                    >
+                      {editingIndex.row === index && editingIndex.col === 0 ? (
+                        <input
+                          value={trait}
+                          onChange={(e) => updateValue(e, index, 0)}
+                          onBlur={() => setEditingIndex({ row: -1, col: -1 })}
+                          autoFocus
+                          className="bg-transparent border-b border-gray-500"
+                        />
+                      ) : (
+                        trait
+                      )}
+                    </td>
+                    <td
+                      className="px-2 py-1 cursor-pointer"
+                      onClick={() => startEditing(index, 1)}
+                    >
+                      {editingIndex.row === index && editingIndex.col === 1 ? (
+                        <input
+                          value={values[index]}
+                          onChange={(e) => updateValue(e, index, 1)}
+                          onBlur={() => setEditingIndex({ row: -1, col: -1 })}
+                          autoFocus
+                          className="bg-transparent border-b border-gray-500"
+                        />
+                      ) : (
+                        values[index]
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <button
+              onClick={addRow}
+              className="mt-2 px-4 py-2 bg-[#252525] text-[#FFFFFF] rounded-lg hover:bg-[#343434] transition-colors"
+            >
+              + Add New Trait
+            </button>
           </div>
 
           <div>
             <button
               className="mt-2 px-4 py-2 bg-[#252525] text-[#FFFFFF] rounded-lg hover:bg-[#343434] transition-colors"
-              onClick={uploadToArweave}
+              onClick={minting}
             >
-              Upload To Arweave
+              Mint
             </button>
           </div>
         </div>
