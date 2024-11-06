@@ -1,33 +1,31 @@
-import {
-    SchemaEncoder
-} from "@ethereum-attestation-service/eas-sdk";
+
 import { ethers } from "ethers";
 
 // const sampleData = {
 //     name: "WeaveMint Test",
 //     image: "https://arweave.net/UwlQKt4Hh86pIA8g_3GX70uj6I1FOLsADNONpeH9jUk"
 // };
+const sampleData = {
+    name: "Profile Picture",
+    image: "https://arweave.net/UwlQKt4Hh86pIA8g_3GX70uj6I1FOLsADNONpeH9jUk",
+    traits: ["Style", "Look"],
+    values: ["Cool", "Relaxed"]
+};
 // const sampleData = {
-//     name: "WeaveMint Test",
-//     image: "https://arweave.net/UwlQKt4Hh86pIA8g_3GX70uj6I1FOLsADNONpeH9jUk",
+//     name: "Test",
+//     image: "https://test/1",
 //     traits: ["trait1", "trait2"],
 //     values: ["value1", "value2"]
 // };
-const sampleData = {
-    name: "Test",
-    image: "https://test/1",
-    traits: ["trait1", "trait2"],
-    values: ["value1", "value2"]
-};
 
-const encodeData = async (data) => {
+export const encodeData = async (data) => {
     const abiCoder = new ethers.AbiCoder();
     const encodedData = abiCoder.encode(
         ["string", "string", "string[]", "string[]"],
         [data.name, data.image, data.traits, data.values]
     );
 
-    console.log("Encoded Data:", encodedData); // Encoded data is a single hex string
+    // console.log("Encoded Data:", encodedData); // Encoded data is a single hex string
     return encodedData;
 };
 
@@ -39,12 +37,12 @@ const decodeData = (encodedData) => {
         encodedData
     );
 
-    console.log("Decoded Data:", {
-        name: decodedData[0],
-        image: decodedData[1],
-        traits: decodedData[2],
-        values: decodedData[3]
-    });
+    // console.log("Decoded Data:", {
+    //     name: decodedData[0],
+    //     image: decodedData[1],
+    //     traits: decodedData[2],
+    //     values: decodedData[3]
+    // });
     return decodedData;
 };
 

@@ -1,8 +1,8 @@
-const { ethers, run } = require("hardhat");
+
 
 async function main() {
     // WeaveMint
-    const WeaveMintContract = await hre.ethers.getContractFactory("WeaveMint");
+    const WeaveMintContract = await hre.ethers.getContractFactory("WeaveMinter");
     console.log("Deploying WeaveMint Contract...");
     const weaveMint = await WeaveMintContract.deploy(
         {
