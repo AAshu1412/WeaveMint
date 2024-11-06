@@ -131,50 +131,126 @@ export default function CreateNFT() {
 
   //////////////////////////////////////////////////////////////////////////////
 
-  function uploadToArweave() {
-    if (preview) {
-      const ar = Arweave.init({
-        host: "arweave.net",
-        port: 443,
-        protocol: "https",
-      });
-
-      const reader = new FileReader();
-      reader.readAsArrayBuffer(file);
-
-      return new Promise((resolve, reject) => {
-        reader.onload = async () => {
-          const buffer = new Uint8Array(await file.arrayBuffer());
-          const txn = await ar.createTransaction(
-            { data: buffer },
-            JSON.parse(process.env.NEXT_PUBLIC_WALLET)
-          );
-          txn.addTag("App-Name", "WeaveMint");
-          // txn.addTag("App-Version", AppVersion)
-          txn.addTag("Content-Type", file.type || "application/octet-stream");
-          txn.addTag("WeaveMint-Function", "Create-Profile");
-          txn.addTag("File-Name", file.name || "unknown");
-          await ar.transactions.sign(
-            txn,
-            JSON.parse(process.env.NEXT_PUBLIC_WALLET)
-          );
-          try {
-            await ar.transactions.post(txn);
-            resolve(txn.id);
-            console.log("txn.id = " + txn.id);
-            return txn.id;
-            // console.log("txn = " + JSON.stringify(txn));
-          } catch (e) {
-            console.log("Error: " + e);
-          }
-        };
-
-        reader.onerror = (err) => reject(err);
-      });
-    } else {
-      toast("Error: Upload the image first");
+  async function uploadToArweave(imageInput) {
+    if (!imageInput) {
+      toast("Error: No image provided");
+      return;
     }
+  
+    let fileToUpload;
+    
+    // Check if the input is a URL or a file
+    if (typeof imageInput === "string" && imageInput.startsWith("http")) {
+      // Handle image URL
+      const response = await fetch(imageInput);
+      if (!response.ok) {
+        toast("Error: Failed to fetch image from URL");
+        return;
+      }
+      fileToUpload = await response.blob(); // Convert to Blob
+    } else if (imageInput instanceof File) {
+      // Handle file input (already handled)
+      fileToUpload = imageInput;
+    } else {
+      toast("Error: Invalid image input");
+      return;
+    }
+  
+    // Initialize Arweave
+    const ar = Arweave.init({
+      host: "arweave.net",
+      port: 443,
+      protocol: "https",
+    });
+  
+    const reader = new FileReader();
+    reader.readAsArrayBuffer(fileToUpload);
+  
+    return new Promise((resolve, reject) => {
+      reader.onload = async () => {
+        const buffer = new Uint8Array(await fileToUpload.arrayBuffer());
+        const txn = await ar.createTransaction(
+          { data: buffer },
+          JSON.parse(process.env.NEXT_PUBLIC_WALLET)
+        );
+        txn.addTag("App-Name", "WeaveMint");
+        txn.addTag("Content-Type", fileToUpload.type || "application/octet-stream");
+        txn.addTag("WeaveMint-Function", "Create-Profile");
+        txn.addTag("File-Name", fileToUpload.name || "unknown");
+  
+        await ar.transactions.sign(txn, JSON.parse(process.env.NEXT_PUBLIC_WALLET));
+  
+        try {
+          await ar.transactions.post(txn);
+          resolve(txn.id);
+          console.log("txn.id = " + txn.id);
+        } catch (e) {
+          console.log("Error: " + e);
+          reject(e);
+        }
+      };
+  
+      reader.onerror = (err) => reject(err);
+    });
   }
+  
+  const handleUrlSubmit = async (url) => {
+    if (url && url.startsWith("http")) {
+      try {
+        const txnId = await uploadToArweave(url); // Passing URL directly
+        console.log("Image uploaded with txn ID:", txnId);
+      } catch (e) {
+        console.log("Error uploading image:", e);
+      }
+    } else {
+      toast("Error: Invalid URL");
+    }
+  };
+
+  // function uploadToArweave() {
+  //   if (preview) {
+  //     const ar = Arweave.init({
+  //       host: "arweave.net",
+  //       port: 443,
+  //       protocol: "https",
+  //     });
+
+  //     const reader = new FileReader();
+  //     reader.readAsArrayBuffer(file);
+
+  //     return new Promise((resolve, reject) => {
+  //       reader.onload = async () => {
+  //         const buffer = new Uint8Array(await file.arrayBuffer());
+  //         const txn = await ar.createTransaction(
+  //           { data: buffer },
+  //           JSON.parse(process.env.NEXT_PUBLIC_WALLET)
+  //         );
+  //         txn.addTag("App-Name", "WeaveMint");
+  //         // txn.addTag("App-Version", AppVersion)
+  //         txn.addTag("Content-Type", file.type || "application/octet-stream");
+  //         txn.addTag("WeaveMint-Function", "Create-Profile");
+  //         txn.addTag("File-Name", file.name || "unknown");
+  //         await ar.transactions.sign(
+  //           txn,
+  //           JSON.parse(process.env.NEXT_PUBLIC_WALLET)
+  //         );
+  //         try {
+  //           await ar.transactions.post(txn);
+  //           resolve(txn.id);
+  //           console.log("txn.id = " + txn.id);
+  //           return txn.id;
+  //           // console.log("txn = " + JSON.stringify(txn));
+  //         } catch (e) {
+  //           console.log("Error: " + e);
+  //         }
+  //       };
+
+  //       reader.onerror = (err) => reject(err);
+  //     });
+  //   } else {
+  //     toast("Error: Upload the image first");
+  //   }
+  // }
 
   async function minting() {
     try {
@@ -230,62 +306,67 @@ export default function CreateNFT() {
     }
   };
 
+  //////////////////////////
+  const compressImage = async (imageUrl) => { const response = await fetch(imageUrl); const blob = await response.blob(); 
+    const options = { maxSizeMB: 0.1, // 100KB 
+      maxWidthOrHeight: 1920, useWebWorker: true }; const compressedBlob = await imageCompression(blob, options); return URL.createObjectURL(compressedBlob); };
+
   // Compress image
-  const compressImage = async (imageUrl) => {
-    try {
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
+  // const compressImage = async (imageUrl) => {
+  //   try {
+  //     const response = await fetch(imageUrl);
+  //     const blob = await response.blob();
 
-      // First attempt with initial options
-      let options = {
-        maxSizeMB: 0.1, // 100KB
-        maxWidthOrHeight: 1920,
-        useWebWorker: true,
-        initialQuality: 0.7, // Start with 70% quality
-      };
+  //     // First attempt with initial options
+  //     let options = {
+  //       maxSizeMB: 0.1, // 100KB
+  //       maxWidthOrHeight: 1920,
+  //       useWebWorker: true,
+  //       initialQuality: 0.7, // Start with 70% quality
+  //     };
 
-      let compressedBlob = await imageCompression(blob, options);
-      let currentSize = compressedBlob.size / 1024; // Convert to KB
+  //     let compressedBlob = await imageCompression(blob, options);
+  //     let currentSize = compressedBlob.size / 1024; // Convert to KB
 
-      // If still over 100KB, try more aggressive compression
-      if (currentSize > 100) {
-        // Second attempt with more aggressive options
-        options = {
-          maxSizeMB: 0.095, // Slightly under 100KB
-          maxWidthOrHeight: 1600, // Reduce max dimensions
-          useWebWorker: true,
-          initialQuality: 0.5, // Reduce initial quality
-          maxIteration: 10, // Allow more compression iterations
-        };
+  //     // If still over 100KB, try more aggressive compression
+  //     if (currentSize > 100) {
+  //       // Second attempt with more aggressive options
+  //       options = {
+  //         maxSizeMB: 0.095, // Slightly under 100KB
+  //         maxWidthOrHeight: 1600, // Reduce max dimensions
+  //         useWebWorker: true,
+  //         initialQuality: 0.5, // Reduce initial quality
+  //         maxIteration: 10, // Allow more compression iterations
+  //       };
 
-        compressedBlob = await imageCompression(blob, options);
-        currentSize = compressedBlob.size / 1024;
+  //       compressedBlob = await imageCompression(blob, options);
+  //       currentSize = compressedBlob.size / 1024;
 
-        // If still over 100KB, try final aggressive compression
-        if (currentSize > 100) {
-          options = {
-            maxSizeMB: 0.095,
-            maxWidthOrHeight: 1200,
-            useWebWorker: true,
-            initialQuality: 0.3,
-            maxIteration: 15,
-            fileType: "image/jpeg", // Force JPEG format for better compression
-          };
+  //       // If still over 100KB, try final aggressive compression
+  //       if (currentSize > 100) {
+  //         options = {
+  //           maxSizeMB: 0.095,
+  //           maxWidthOrHeight: 1200,
+  //           useWebWorker: true,
+  //           initialQuality: 0.3,
+  //           maxIteration: 15,
+  //           fileType: "image/jpeg", // Force JPEG format for better compression
+  //         };
 
-          compressedBlob = await imageCompression(blob, options);
-        }
-      }
+  //         compressedBlob = await imageCompression(blob, options);
+  //       }
+  //     }
 
-      // Return both URL and size for verification
-      return {
-        url: URL.createObjectURL(compressedBlob),
-        size: (compressedBlob.size / 1024).toFixed(2), // Size in KB
-      };
-    } catch (error) {
-      console.error("Error in compression:", error);
-      throw error;
-    }
-  };
+  //     // Return both URL and size for verification
+  //     return {
+  //       url: URL.createObjectURL(compressedBlob),
+  //       size: (compressedBlob.size / 1024).toFixed(2), // Size in KB
+  //     };
+  //   } catch (error) {
+  //     console.error("Error in compression:", error);
+  //     throw error;
+  //   }
+  // };
 
   ///////////////////////////////////////////////////////////////
 
@@ -308,15 +389,31 @@ export default function CreateNFT() {
     if (images && images.length > 0) {
       const imageUrl = images[0].url;
       setPreview(imageUrl);
-
-      const data1 = await getImageSize(imageUrl);
+      var sizeimage = imageUrl;
+      const maxIterations = 10;  // Set a maximum to avoid an infinite loop
+      let currentIteration = 0;
+      
+      const data1 = await getImageInfo(imageUrl);
       console.log("Data1: " + JSON.stringify(data1));
-      const data2 = await compressImage(imageUrl);
-
-      const data3 = await getImageSize(data2);
-      console.log("Data3: " + JSON.stringify(data3));
-
-      console.log(imageUrl);
+      
+      while (true) {
+        const data2 = await compressImage(sizeimage);
+        sizeimage = data2;  // Update to the new compressed image URL
+        const data3 = await getImageInfo(sizeimage);
+      
+        console.log("Data3: " + JSON.stringify(data3));
+      
+        // Terminate if the image size is below 100 KB or max iterations are reached
+        if (data3.size < 100.00 || currentIteration >= maxIterations) {
+          break;
+        }
+      
+        currentIteration++;  // Increment the iteration count
+      }
+      console.log("sizeimage type : "+typeof(sizeimage));
+      console.log("sizeimage: "+sizeimage);
+      console.log("Imageurl: "+imageUrl);
+     await handleUrlSubmit(sizeimage);
       return imageUrl;
     } else {
       throw new Error("No images returned from the API.");
