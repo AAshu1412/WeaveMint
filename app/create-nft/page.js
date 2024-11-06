@@ -136,11 +136,11 @@ export default function CreateNFT() {
       toast("Error: No image provided");
       return;
     }
-  
+
     let fileToUpload;
-    
+
     // Check if the input is a URL or a file
-    if (typeof imageInput === "string" && imageInput.startsWith("http")) {
+    if (typeof imageInput === "string") {
       // Handle image URL
       const response = await fetch(imageInput);
       if (!response.ok) {
@@ -155,17 +155,17 @@ export default function CreateNFT() {
       toast("Error: Invalid image input");
       return;
     }
-  
+
     // Initialize Arweave
     const ar = Arweave.init({
       host: "arweave.net",
       port: 443,
       protocol: "https",
     });
-  
+
     const reader = new FileReader();
     reader.readAsArrayBuffer(fileToUpload);
-  
+
     return new Promise((resolve, reject) => {
       reader.onload = async () => {
         const buffer = new Uint8Array(await fileToUpload.arrayBuffer());
@@ -174,12 +174,18 @@ export default function CreateNFT() {
           JSON.parse(process.env.NEXT_PUBLIC_WALLET)
         );
         txn.addTag("App-Name", "WeaveMint");
-        txn.addTag("Content-Type", fileToUpload.type || "application/octet-stream");
+        txn.addTag(
+          "Content-Type",
+          fileToUpload.type || "application/octet-stream"
+        );
         txn.addTag("WeaveMint-Function", "Create-Profile");
         txn.addTag("File-Name", fileToUpload.name || "unknown");
-  
-        await ar.transactions.sign(txn, JSON.parse(process.env.NEXT_PUBLIC_WALLET));
-  
+
+        await ar.transactions.sign(
+          txn,
+          JSON.parse(process.env.NEXT_PUBLIC_WALLET)
+        );
+
         try {
           await ar.transactions.post(txn);
           resolve(txn.id);
@@ -189,11 +195,11 @@ export default function CreateNFT() {
           reject(e);
         }
       };
-  
+
       reader.onerror = (err) => reject(err);
     });
   }
-  
+
   const handleUrlSubmit = async (url) => {
     if (url && url.startsWith("http")) {
       try {
@@ -307,9 +313,17 @@ export default function CreateNFT() {
   };
 
   //////////////////////////
-  const compressImage = async (imageUrl) => { const response = await fetch(imageUrl); const blob = await response.blob(); 
-    const options = { maxSizeMB: 0.1, // 100KB 
-      maxWidthOrHeight: 1920, useWebWorker: true }; const compressedBlob = await imageCompression(blob, options); return URL.createObjectURL(compressedBlob); };
+  const compressImage = async (imageUrl) => {
+    const response = await fetch(imageUrl);
+    const blob = await response.blob();
+    const options = {
+      maxSizeMB: 0.1, // 100KB
+      maxWidthOrHeight: 1920,
+      useWebWorker: true,
+    };
+    const compressedBlob = await imageCompression(blob, options);
+    return URL.createObjectURL(compressedBlob);
+  };
 
   // Compress image
   // const compressImage = async (imageUrl) => {
@@ -388,32 +402,34 @@ export default function CreateNFT() {
     const images = responseValue?.images;
     if (images && images.length > 0) {
       const imageUrl = images[0].url;
-      setPreview(imageUrl);
+      // setPreview(imageUrl);
       var sizeimage = imageUrl;
-      const maxIterations = 10;  // Set a maximum to avoid an infinite loop
+      const maxIterations = 10; // Set a maximum to avoid an infinite loop
       let currentIteration = 0;
-      
+
       const data1 = await getImageInfo(imageUrl);
       console.log("Data1: " + JSON.stringify(data1));
-      
+
       while (true) {
         const data2 = await compressImage(sizeimage);
-        sizeimage = data2;  // Update to the new compressed image URL
+        sizeimage = data2; // Update to the new compressed image URL
         const data3 = await getImageInfo(sizeimage);
-      
+
         console.log("Data3: " + JSON.stringify(data3));
-      
+
         // Terminate if the image size is below 100 KB or max iterations are reached
-        if (data3.size < 100.00 || currentIteration >= maxIterations) {
+        if (data3.size < 100.0 || currentIteration >= maxIterations) {
           break;
         }
-      
-        currentIteration++;  // Increment the iteration count
+
+        currentIteration++; // Increment the iteration count
       }
-      console.log("sizeimage type : "+typeof(sizeimage));
-      console.log("sizeimage: "+sizeimage);
-      console.log("Imageurl: "+imageUrl);
-     await handleUrlSubmit(sizeimage);
+      await uploadToArweave(sizeimage);
+      console.log("sizeimage type : " + typeof sizeimage);
+      console.log("sizeimage: " + sizeimage);
+      setPreview(sizeimage);
+      console.log("Imageurl: " + imageUrl);
+      //  await handleUrlSubmit(sizeimage);
       return imageUrl;
     } else {
       throw new Error("No images returned from the API.");
