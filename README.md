@@ -1,36 +1,22 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# WeaveMint
 
-## Getting Started
+#### Contracts: https://github.com/AAshu1412/WeaveMint/tree/mujahid/contracts
 
-First, run the development server:
+#### WeaveMint Contract: https://explorer.wvm.dev/address/0x61a5d7B751C0e249ED4c418789Bd230c00Be2e5a?tab=contract
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Flowchart
+https://github.com/AAshu1412/WeaveMint/blob/mujahid/image.png
+
+### Sample Data
+
+```js
+const sampleData = {
+  name: "Profile Picture",
+  image: "https://arweave.net/UwlQKt4Hh86pIA8g_3GX70uj6I1FOLsADNONpeH9jUk",
+  traits: ["Style", "Look"],
+  values: ["Cool", "Relaxed"],
+};
+
+const dataInBytes =
+  "0x000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000c000000000000000000000000000000000000000000000000000000000000001200000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000f50726f66696c6520506963747572650000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003f68747470733a2f2f617277656176652e6e65742f55776c514b74344868383670494138675f3347583730756a364931464f4c7341444e4f4e706548396a556b0000000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000055374796c6500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000044c6f6f6b000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000004436f6f6c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000752656c6178656400000000000000000000000000000000000000000000000000";
 ```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
